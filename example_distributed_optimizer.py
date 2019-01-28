@@ -8,9 +8,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
-# from distributed_optimizer_qsgd import DistributedQSGDOptimizer as MyDistributedOptimizer
-# from distributed_optimizer_hsq import DistributedHSQOptimizer as MyDistributedOptimizer
-from distributed_optimizer_nn import DistributedNNOptimizer as MyDistributedOptimizer
+from distributed_optimizer_qsgd import DistributedQSGDOptimizer as MyDistributedOptimizer
 # from distributed_optimizer_allreduce import DistributedAllReduceOptimizer as MyDistributedOptimizer
 from distributed_optimizer import BroadcastGlobalVariablesHook
 import mpi_ops as mpi_wrappers
