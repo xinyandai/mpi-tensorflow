@@ -8,12 +8,32 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
-from distributed_optimizer_qsgd import DistributedQSGDOptimizer as MyDistributedOptimizer
-# from distributed_optimizer_allreduce import DistributedAllReduceOptimizer as MyDistributedOptimizer
-from distributed_optimizer import BroadcastGlobalVariablesHook
-import mpi_ops as mpi_wrappers
+from tf_mpi.optimizers import DistributedQSGDOptimizer as MyDistributedOptimizer
+# from tf_mpi.optimizers import DistributedAllReduceOptimizer as MyDistributedOptimizer
+from tf_mpi.optimizers import BroadcastGlobalVariablesHook
+import tf_mpi.mpi_ops as mpi_wrappers
 import time
 import logging
+
+
+class Timer(object):
+    def __init__(self, name=None):
+        self.name = name
+        self.t_start = time.time()
+
+    def __enter__(self):
+        self.tic()
+
+    def __exit__(self, type, value, traceback):
+        if self.name:
+            print('[%s]' % self.name,)
+        print('Elapsed: %s' % (time.time() - self.t_start))
+
+    def tic(self):
+        self.t_start = time.time()
+
+    def toc(self):
+        return time.time() - self.t_start
 
 
 def download_mnist_retry(seed=0, max_num_retries=20):
@@ -179,16 +199,17 @@ if __name__ == '__main__':
 
     i = 0
     batch_size = 64
-    from myutils import Timer
 
     timer = Timer()
-    while True:
-        # Compute and apply gradients.
 
-        if i % 10 == 0:
-            test_xs, test_ys = data.test.next_batch(1000)
-            loss, accuracy = net.compute_loss_accuracy(test_xs, test_ys)
-            logging.info("%d, %.3f, %.3f, %.3f" % (i, timer.toc(), loss, accuracy))
-        i += 1
-        xs, ys = data.train.next_batch(batch_size)
-        net.compute_update(xs, ys)
+    with tf.train.MonitoredTrainingSession(hooks=[]) as mon_sess:
+        while True:
+            # Compute and apply gradients.
+
+            if i % 10 == 0:
+                test_xs, test_ys = data.test.next_batch(1000)
+                loss, accuracy = net.compute_loss_accuracy(test_xs, test_ys)
+                logging.info("%d, %.3f, %.3f, %.3f" % (i, timer.toc(), loss, accuracy))
+            i += 1
+            xs, ys = data.train.next_batch(batch_size)
+            net.compute_update(xs, ys)
