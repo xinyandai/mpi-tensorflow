@@ -4,8 +4,11 @@ Implement MPI as tensorflow operation
 
 ## setup
 
-    cd mpi-tensorflow/mpi_ops
+    cd mpi-tensorflow
+    # build inplace
     python setup.py build_ext --inplace
+    # install 
+    python setup.py install
 
 ## run
 
