@@ -1,1 +1,2 @@
 include tf_mpi/mpi_ops/mpi_ops.so
+include tf_mpi/optimizers/codebook/*.fvecs
