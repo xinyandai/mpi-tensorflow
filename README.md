@@ -9,6 +9,7 @@ Implement MPI as tensorflow operation
     python setup.py build_ext --inplace
     # install 
     python setup.py install
+    # use system ld rather than anaconda's ld
 
 ## run
 
