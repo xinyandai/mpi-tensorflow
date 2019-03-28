@@ -8,16 +8,9 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
-# from tf_mpi.optimizers import DistributedQSGDOptimizer as MyDistributedOptimizer
-from tf_mpi.optimizers.distributed_optimizer_lsh import DistributedLSHOptimizer as MyDistributedOptimizer
-# from tf_mpi.optimizers import DistributedNNOptimizer as MyDistributedOptimizer
-# from tf_mpi.optimizers.distributed_optimizer_ohsq import DistributedOHSQOptimizer as MyDistributedOptimizer
-# from tf_mpi.optimizers import DistributedHSQOptimizer as MyDistributedOptimizer
-# from tf_mpi.optimizers import DistributedAllReduceOptimizer as MyDistributedOptimizer
 from tf_mpi.optimizers import BroadcastGlobalVariablesHook
-import tf_mpi.mpi_ops as mpi_wrappers
 import time
-import logging
+
 
 
 class Timer(object):
@@ -51,7 +44,7 @@ def download_mnist_retry(seed=0, max_num_retries=20):
 
 
 class SimpleCNN(object):
-    def __init__(self, learning_rate=1e-4):
+    def __init__(self, learning_rate=1e-4, DistributedOptimizer=None):
         with tf.Graph().as_default():
 
             # Create the model
@@ -69,8 +62,9 @@ class SimpleCNN(object):
             self.cross_entropy = tf.reduce_mean(cross_entropy)
 
             with tf.name_scope('adam_optimizer'):
-                self.optimizer = MyDistributedOptimizer(
-                    tf.train.AdamOptimizer(learning_rate * worker_size))
+                self.optimizer = tf.train.AdamOptimizer(learning_rate)
+                if DistributedOptimizer is not None:
+                    self.optimizer = DistributedOptimizer(tf.train.AdamOptimizer(learning_rate))
                 self.train_step = self.optimizer.minimize(
                     self.cross_entropy)
 
@@ -190,30 +184,3 @@ def bias_variable(shape):
     initial = tf.constant(0.1, shape=shape)
     return tf.Variable(initial)
 
-
-if __name__ == '__main__':
-
-    logging.basicConfig(level=logging.INFO)
-
-    worker_index = mpi_wrappers.mpi_rank()
-    worker_size = mpi_wrappers.mpi_size()
-
-    data = download_mnist_retry(seed=worker_index)
-    net = SimpleCNN()
-
-    i = 0
-    batch_size = 64
-
-    timer = Timer()
-
-    with tf.train.MonitoredTrainingSession(hooks=[]) as mon_sess:
-        while True:
-            # Compute and apply gradients.
-
-            if i % 10 == 0:
-                test_xs, test_ys = data.test.next_batch(1000)
-                loss, accuracy = net.compute_loss_accuracy(test_xs, test_ys)
-                logging.info("%d, %.3f, %.3f, %.3f" % (i, timer.toc(), loss, accuracy))
-            i += 1
-            xs, ys = data.train.next_batch(batch_size)
-            net.compute_update(xs, ys)
